@@ -1,0 +1,314 @@
+<html>
+<head>
+	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+	<script type="text/javascript">
+	  google.load("jquery", "1.4.2");
+	</script>
+<style>
+	.grid {
+		/*border:1px solid #ddd;*/
+		position:absolute;
+	}
+
+	#player {
+		background: red;
+		z-index: 3;
+	}
+
+	.ghost {
+		background: yellow;
+		position: absolute;
+	}
+
+	.player{
+		position:absolute;
+		background: gray;
+		background-position: 60% 50%;*/
+		border-radius: 90px 90px;
+		z-index: 2;
+	}
+
+	#field {
+		border:1px solid gray;
+		position:relative;
+	}
+
+	.poo {
+		background: url('img/poo.jpg');
+		background-size: 100%;
+		position: absolute;
+		background-repeat: no-repeat;
+		background-position: center;
+	}
+</style>
+
+<script>
+$(document).ready(function(){
+
+	var gridBox = '<div class="grid"></div>'
+	var playerBox = '<div class="player" id="player"></div>'
+
+	var field = {x: 10, y: 10}
+	var size = 30;
+
+	var random_n = function(n){return Math.ceil(Math.random() * n)};
+	var passed_direction = null;
+
+	var position = {x: 2, y: 0}
+	var train_length = 0;
+
+	train = [];
+	var food = [];
+
+	createFood = function(obj){
+		if(obj === undefined){
+			obj = {}
+		}
+		var uniqCoord = function(){
+			var x, y;
+
+			x = random_n(field.x -1);
+			y = random_n(field.y -1);
+
+			if(position.x === x || position === y){
+				console.log("Poo coords have matched with player position.");
+				return uniqCoord()
+			}
+
+			for(var i = 0; i < train.length; i++){
+				if(train[i].x === x && train[i].y === y){
+					console.log("The same coords. Create a new one");
+					return uniqCoord()
+				}
+			}
+			return {x: x, y: y}
+		}
+		food.push(uniqCoord())
+	}
+
+	var removeFood = function(x,y){
+		for(var i = 0; i < food.length; i++){
+			if(food[i].x === x && food[i].y === y){
+				food.splice(i)
+			}
+		}
+	}
+
+	createPoo = function(){
+		$('#field .poo').remove();
+
+		for(var i = 0; i < food.length; i++){
+			$('#field').append('<div class="poo" style="width: '+size+'px; height: '+size+'px; left: '+food[i].x * size+'; top: '+food[i].y * size+'"></div>')
+		}
+	}
+
+	var createTrain = function(run){
+		for(var i = 0; i < train.length; i++){
+			if(run != undefined){
+				run(i);
+			}
+			
+			var $train = $('#field #train-'+i+'').last()
+
+			$train.css('width', size);
+			$train.css('height', size);
+			$train.css('top', train[i].y * size);
+			$train.css('left', train[i].x * size);
+			
+		}
+	}
+
+	var	addTrain = function(i){
+		if(i === 0) {
+			train.push({x: position.x, y: position.y})
+		} else {
+			train.push({x: train[i-1].x, y: train[i-1].y})
+		}
+	}
+
+	var setupTrain = function(){
+		for(var i = 0; i < train_length; i++){
+			addTrain(i)
+		}
+	}
+	
+	var setup = function(){
+		createField();
+
+		$('#field').css('width', field.x * size);
+		$('#field').css('height', field.y * size);
+
+		for(y = 0; y < grid.length; y++){ 
+			
+			for(x = 0; x < grid[y].length; x++ ){ 
+				$('#field').append(gridBox);
+				$('#field .grid').last().css('width', size);
+				$('#field .grid').last().css('height', size);
+				$('#field .grid').last().css('top', y * size);
+				$('#field .grid').last().css('left', x * size);
+			} 
+		}
+
+		$('#field').append(playerBox);
+		$('#field #player').last().css('width', size);
+		$('#field #player').last().css('height', size);
+		$('#field #player').last().css('top', position.y * size);
+		$('#field #player').last().css('left', position.x * size);
+
+		setupTrain();
+
+		createTrain(function(i){
+			$('#field').append('<div class="player" id="train-'+i+'"></div>');
+		});
+
+		createFood();
+		createPoo();
+
+	}
+
+	var changePosition = function(direction){
+		if(train.length > 0){
+			var lst = train.pop()
+			lst.x = position.x
+			lst.y = position.y
+			train.unshift(lst)
+		}
+
+		switch (direction){
+			case 'left':
+				if(position.x > 0){
+					position.x--;
+				} else {
+					throw "Wall have been reached"
+				}
+				break;
+			case 'up':
+				if(position.y > 0){
+					position.y--;
+					// passed_direction = 'up'
+				} else {
+					throw "Wall have been reached"
+				}
+				break;
+			case 'right':
+				if(position.x < field.x - 1){
+					position.x++;
+					// passed_direction = 'right'
+				} else {
+					throw "Wall have been reached"
+				}
+				break;
+			case 'down':
+				if(position.y < field.y - 1){
+					position.y++;
+					// passed_direction = 'down'
+				} else {
+					throw "Wall have been reached"
+				}
+				break
+			default:
+				return false;
+		}
+
+		$('#field #player').last().css('top', position.y * size);
+		$('#field #player').last().css('left', position.x * size);
+		
+		createTrain();
+
+	}
+
+	createField = function(){
+		grid = []
+
+		for(var y = 0; y < field.y; y++){
+			grid.push([]);
+
+			for(var x = 0; x < field.x; x++){
+				grid[y].push(x);
+			}
+		}
+	}
+
+	setup();
+
+	var	trainIntersection = function(){
+		if(train.length > 1){
+			for(var i = 0; i < train.length; i++){
+				if(train[i].x === position.x && train[i].y === position.y){
+					console.log('Train intersection')
+					throw "Intersection with train"
+				}
+			}
+		}
+	}
+
+	var intersects = function(){
+		for(var i = 0; i < food.length; i++){
+			if(food[i].x === position.x && food[i].y === position.y){
+				console.log("Poo have been reached.");
+				addTrain(train_length++);
+				console.log(train);
+				
+				$('#field').append('<div class="player" id="train-'+(train_length - 1)+'"></div>');
+
+				food.splice(i);
+				createFood();
+				createPoo();
+			}
+		}
+	}
+
+	var loop = function(){
+		setTimeout(function(){
+			try {
+				if(passed_direction != null){
+					changePosition(passed_direction);
+				}
+				intersects();
+				trainIntersection();
+				loop();
+			} catch (err){
+				alert("Gameover bro.")
+			}
+		}, 300);
+
+		
+	}
+
+	loop();
+
+	$(this).keydown(function(e){
+	    switch (e.keyCode) {
+	    case 37: 
+       	console.log('left')
+       	passed_direction = 'left'
+       	
+       	return false;
+	    case 38:
+	    	console.log('up')
+	    	passed_direction = 'up'
+	    	
+	    	return false;
+	    case 39:
+	    	console.log('right')
+	    	passed_direction = 'right'
+	    	
+	    	return false;
+	    case 40:
+	    	console.log('down')
+	    	passed_direction = 'down'
+	    	
+	    	return false;
+	    default: 
+	    	 return false;
+	    }
+	});
+})
+</script>
+</head>
+<body>
+	<div id="field">
+
+	</div>
+</body>
+</html>
